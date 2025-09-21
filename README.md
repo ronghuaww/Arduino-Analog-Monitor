@@ -1,8 +1,8 @@
 # Analog PC Stats Set Up/ReadMe
 
 ## To RetrieveData About CPU Temperature:  
-Install Core Temp: https://www.alcpu.com/CoreTemp/
-Plugin Core Temp Remote Server: https://www.alcpu.com/CoreTemp/addons.html 
+- Install Core Temp: https://www.alcpu.com/CoreTemp/
+- Plugin Core Temp Remote Server: https://www.alcpu.com/CoreTemp/addons.html 
 
 ### Add the Plugin to the Core Temp: 
 1. Install .Net 3.5. Go to 'Turn Windows features on or off' (under Settings in the Start screen), tick .NET Framework 3.5 and click OK.
