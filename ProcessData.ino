@@ -103,9 +103,10 @@ void parseData() {      // split the data into its parts
     cpuLoadValue = atoi(strtokIndx);     // convert this part to an integer
 
     strtokIndx = strtok(NULL, ",");
-    ramLoadValue = atof(strtokIndx);     // convert this part to a float
+    ramLoadValue = atof(strtokIndx);     // convert this part to an integer
     
     strtokIndx = strtok(NULL, ",");
-    gpuLoadValue = atof(strtokIndx);     // convert this part to a float
+    gpuLoadValue = atof(strtokIndx);     // convert this part to an integer
 }
+
 
