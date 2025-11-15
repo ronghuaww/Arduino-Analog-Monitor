@@ -5,23 +5,22 @@ import json
 import time
 from urllib.error import URLError, HTTPError
 from urllib.request import Request, urlopen
-
 import serial
-
 import socket
-import json
+
+import logging
+import sys
+from datetime import datetime
 
 RAM_NAME = 'Generic Memory'
 CPU_NAME = 'ABC 123'
 GPU_NAME = 'DFC 456'
 
-HOST = 'xxx.xxx.xxx.xxx'  # (localhost)
+HOST = 'localhost'  # (localhost)
 CORE_TEMP_PORT = 5200  # Core temp port 
 OHW_PORT = 8085 # Open Hardware Monitor Port 
 ARDUINO_PORT = 'COM3' # Arduino port
 
-
-import socket
 
 def get_cpu_json_contents(): 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -107,16 +106,23 @@ def find_in_data(ohw_data, name):
     # When this point is reached, nothing was found in any children
     return -1
 
+
+cpu_temp_value = 0
+cpu_load_value = 0
+ram_load_value = 0
+gpu_load_value = 0
+
 def get_hardware_info():
     """
     Get hardware info from OpenHardwareMonitor's web server and format it
     """
+    global cpu_temp_value
+    global cpu_load_value
+    global ram_load_value
+    global gpu_load_value
+
     # Init arrays
     my_info = {}
-    cpu_temp_value = 0
-    cpu_load_value = 0
-    ram_load_value = 0
-    gpu_load_value = 0
 
     # Get actual OHW data (Modify to your Open Hardware Monitor's IP Address)
     ohw_json_url = f'http://localhost:{OHW_PORT}/data.json'
@@ -132,22 +138,26 @@ def get_hardware_info():
     # cpu load
     if (data_json): 
         cpu_data = find_in_data(data_json, CPU_NAME)
-        cpu_load = find_in_data(cpu_data, 'CPU Total')
-        cpu_load_value = cpu_load['Value'][:-4]
+        if (cpu_data): 
+            cpu_load = find_in_data(cpu_data, 'CPU Total')
+            cpu_load_value = cpu_load['Value'][:-4]
 
 
     # ram load 
     if (data_json): 
         ram_data = find_in_data(data_json, RAM_NAME)
-        ram_load = find_in_data(ram_data, 'Memory')
-        ram_load_value = ram_load['Value'][:-4]
+        if (ram_data): 
+            ram_load = find_in_data(ram_data, 'Memory')
+            ram_load_value = ram_load['Value'][:-4]
 
     #gpu load 
     if (data_json): 
         gpu_data = find_in_data(data_json, GPU_NAME)
-        gpu_load = find_in_data(gpu_data, 'Load')
-        gpu_load_amount = find_in_data(gpu_load, 'GPU Core')
-        gpu_load_value = gpu_load_amount['Value'][:-4]
+        if (gpu_data): 
+            gpu_load = find_in_data(gpu_data, 'Load')
+            if (gpu_load):
+                gpu_load_amount = find_in_data(gpu_load, 'GPU Core')
+                gpu_load_value = gpu_load_amount['Value'][:-4]
 
 
     my_info['cpu_temp'] = cpu_temp_value
@@ -160,24 +170,38 @@ def get_hardware_info():
 
 
 def main():
-    # Connect to the specified serial port (Modify to your Arduino's COM port)
     serial_port = ARDUINO_PORT
     ser = serial.Serial(serial_port)
 
     while True:
-        # Get current info
-        my_info = get_hardware_info()
+        current_datetime = datetime.now().strftime("%Y-%m-%d%H-%M-%S")
+        logging.basicConfig(filename=f'crash_log_{current_datetime}.txt', 
+                    level=logging.ERROR,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
-        # Prepare CPU string
-        data = '<' + space_pad(int(my_info['cpu_temp']), 3) + \
-               ',' + space_pad(int(my_info['cpu_load']), 3) + \
-               ',' + space_pad(int(my_info['ram_load']), 3) + \
-               ',' + space_pad(int(my_info['gpu_load']), 3) + '>'
+        try: 
+            my_info = get_hardware_info()
 
-        ser.write(data.encode())
-        print(data)
+            if my_info['gpu_load'].isdigit() and \
+                my_info['cpu_temp'].isdigit() and \
+                my_info['cpu_load'].isdigit() and \
+                my_info['ram_load'].isdigit():
 
-        time.sleep(1)
+                data = '<' + space_pad(int(my_info['cpu_temp']), 3) + \
+                        ',' + space_pad(int(my_info['cpu_load']), 3) + \
+                        ',' + space_pad(int(my_info['ram_load']), 3) + \
+                        ',' + space_pad(int(my_info['gpu_load']), 3) + '>'
+                ser.write(data.encode())
+                print(data)
+
+        except Exception as e:
+            # Log the exception details, including the traceback
+            logging.exception("Application crashed with an unhandled exception.")
+            print(f"An error occurred. Check 'crash_log_{current_datetime}.txt' for details.")
+            sys.exit(1) # Exit with a non-zero status code to indicate an error
+
+        time.sleep(2.5)
+
 
 
 if __name__ == '__main__':

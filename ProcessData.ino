@@ -20,30 +20,40 @@ float floatFromPC = 0.0;
 
 boolean newData = false;
 
-int cpuTempValue = 0;  //Variable for the CPU temp
-int cpuLoadValue = 0;  //Variable for the CPU load
-int ramLoadValue = 0;  //Variable for the RAM load
-int gpuLoadValue = 0;  //Variable for the GPU load
+int serialCpuTempValue = 0;  //Variable for the CPU temp
+int serialCpuLoadValue = 0;  //Variable for the CPU load
+int serialRamLoadValue = 0;  //Variable for the RAM load
+int serialGpuLoadValue = 0;  //Variable for the GPU load
 
+float cpuTempValue = 0;  //Variable for the CPU temp
+float cpuLoadValue = 0;  //Variable for the CPU load
+float ramLoadValue = 0;  //Variable for the RAM load
+float gpuLoadValue = 0;  //Variable for the GPU load
+
+float lerpSpeed = .5;
 
 void setup() { 
-  Serial.begin(9600);        
+    Serial.begin(9600);        
 }
 
 void loop() 
 { 
+    cpuTempValue = InterpValue(cpuTempValue, serialCpuTempValue);
+    cpuLoadValue = InterpValue(cpuLoadValue, serialCpuLoadValue);
+    ramLoadValue = InterpValue(ramLoadValue, serialRamLoadValue);
+    gpuLoadValue = InterpValue(gpuLoadValue, serialGpuLoadValue);
+    
+    int a = 255 * 3.14 / 5;
+    analogWrite(CPU_TEMP_PIN, a * cpuTempValue / 50);        
 
-  int a = 255 * 3.14 / 5;
-  analogWrite(CPU_TEMP_PIN, a * cpuTempValue / 50);        
+    int b = 255 * 3.1 / 5;
+    analogWrite(CPU_LOAD_PIN, b * cpuLoadValue / 100);      
 
-  int b = 255 * 3.1 / 5;
-  analogWrite(CPU_LOAD_PIN, b * cpuLoadValue / 100);      
+    int c = 255 * 3.05 / 5;
+    analogWrite(RAM_LOAD_PIN, c * ramLoadValue / 100);      
 
-  int c = 255 * 3.05 / 5;
-  analogWrite(RAM_LOAD_PIN, c * ramLoadValue / 100);      
-
-  int d = 255 * 3.06 / 5;
-  analogWrite(GPU_LOAD_PIN, d * gpuLoadValue / 100);  
+    int d = 255 * 3.06 / 5;
+    analogWrite(GPU_LOAD_PIN, d * gpuLoadValue / 100);  
 
     int cpuTempOffset = 1;
     int cpuLoadOffset = 5;
@@ -59,7 +69,25 @@ void loop()
         parseData();
         newData = false;
     }
+
+    delay(80);
 }
+
+float InterpValue(float Current, float Serial) {
+    if (!(abs(Serial - Current) < lerpSpeed))
+    {
+        if (Current < Serial) {
+        Current = Current + lerpSpeed;
+        }
+        else if (Current > Serial) {
+            Current = Current - lerpSpeed;
+        } 
+    }
+
+    return Current;
+}
+
+
 
 void recvWithStartEndMarkers() {
     static boolean recvInProgress = false;
@@ -96,17 +124,16 @@ void parseData() {      // split the data into its parts
     char * strtokIndx; // this is used by strtok() as an index
 
     strtokIndx = strtok(tempChars,",");      // get the first part - the string
-    cpuTempValue = atoi(strtokIndx);     // convert this part to an integer
-    cpuTempValue = constrain(cpuTempValue, 40, 95) - 40; 
+    int cpuTempVal = atoi(strtokIndx);     // convert this part to an integer
+    serialCpuTempValue = constrain(cpuTempVal, 40, 95) - 40; 
  
     strtokIndx = strtok(NULL, ","); // this continues where the previous call left off
-    cpuLoadValue = atoi(strtokIndx);     // convert this part to an integer
+    serialCpuLoadValue = atoi(strtokIndx);     // convert this part to an integer
 
     strtokIndx = strtok(NULL, ",");
-    ramLoadValue = atof(strtokIndx);     // convert this part to an integer
+    serialRamLoadValue = atof(strtokIndx);     // convert this part to an integer
     
     strtokIndx = strtok(NULL, ",");
-    gpuLoadValue = atof(strtokIndx);     // convert this part to an integer
+    serialGpuLoadValue = atof(strtokIndx);     // convert this part to an integer
 }
-
 
