@@ -174,11 +174,6 @@ def main():
     ser = serial.Serial(serial_port)
 
     while True:
-        current_datetime = datetime.now().strftime("%Y-%m-%d%H-%M-%S")
-        logging.basicConfig(filename=f'crash_log_{current_datetime}.txt', 
-                    level=logging.ERROR,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-
         try: 
             my_info = get_hardware_info()
 
@@ -195,6 +190,11 @@ def main():
                 print(data)
 
         except Exception as e:
+            current_datetime = datetime.now().strftime("%Y-%m-%d%H-%M-%S")
+            logging.basicConfig(filename=f'crash_log_{current_datetime}.txt', 
+                        level=logging.ERROR,
+                        format='%(asctime)s - %(levelname)s - %(message)s')
+
             # Log the exception details, including the traceback
             logging.exception("Application crashed with an unhandled exception.")
             print(f"An error occurred. Check 'crash_log_{current_datetime}.txt' for details.")
